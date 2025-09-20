@@ -1,0 +1,9 @@
+@import "leaflet/dist/leaflet.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+body {
+  @apply font-sans bg-gray-50 text-gray-900;
+}
