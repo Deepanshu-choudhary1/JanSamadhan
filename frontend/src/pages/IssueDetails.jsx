@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { addIssueComment, fetchIssueDetails, upvoteIssue } from "../services/api";
 
@@ -7,14 +7,14 @@ const IssueDetails = () => {
   const [issue, setIssue] = useState(null);
   const [newComment, setNewComment] = useState("");
 
-  const loadIssue = async () => {
+  const loadIssue = useCallback(async () => {
     const data = await fetchIssueDetails(id);
     setIssue(data);
-  };
+  }, [id]);
 
   useEffect(() => {
     loadIssue();
-  }, [id]);
+  }, [loadIssue]);
 
   const handleUpvote = async () => {
     await upvoteIssue(id);
