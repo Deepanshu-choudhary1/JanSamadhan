@@ -1,25 +1,25 @@
-import admin from "firebase-admin";
-import dotenv from "dotenv";
+const hasPushGateway = () => Boolean(process.env.PUSH_WEBHOOK_URL);
 
-dotenv.config();
+export const sendPush = async ({ token, title, body }) => {
+  if (!token) return { skipped: true, reason: "missing-device-token" };
 
-// Load service account JSON from env
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_JSON);
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
-
-export const sendPush = async (token, title, body) => {
-  const message = {
-    notification: { title, body },
-    token,
-  };
-
-  try {
-    await admin.messaging().send(message);
-    console.log(`🔔 Push sent to ${token}`);
-  } catch (err) {
-    console.error("❌ Push error:", err);
+  if (!hasPushGateway()) {
+    console.log(`[push:mock] token=${token} title=${title} body=${body}`);
+    return { skipped: true, reason: "push-gateway-not-configured" };
   }
+
+  const payload = { token, notification: { title, body } };
+
+  const response = await fetch(process.env.PUSH_WEBHOOK_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const bodyText = await response.text();
+    throw new Error(`Push delivery failed: ${response.status} ${bodyText}`);
+  }
+
+  return { sent: true };
 };
