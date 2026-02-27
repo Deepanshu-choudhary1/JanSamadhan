@@ -10,6 +10,10 @@ const RecenterMap = ({ center }) => {
   }, [center, map]);
   return null;
 };
+import { useState } from "react";
+import { MapContainer, Marker, TileLayer } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import { reportIssue } from "../services/api";
 
 const ReportIssue = () => {
   const [position, setPosition] = useState([28.61, 77.23]);
@@ -25,10 +29,6 @@ const ReportIssue = () => {
       });
     }
   };
-
-  useEffect(() => {
-    handleLocation();
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -61,6 +61,7 @@ const ReportIssue = () => {
               <RecenterMap center={position} />
               <Marker position={position} />
             </MapContainer>
+            <MapContainer center={position} zoom={15} style={{ height: "100%", width: "100%" }}><TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" /><Marker position={position} /></MapContainer>
           </div>
         </div>
         <select value={category} onChange={(e) => setCategory(e.target.value)} required className="w-full border p-2 rounded-lg">

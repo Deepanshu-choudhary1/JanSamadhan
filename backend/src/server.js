@@ -336,4 +336,13 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`Backend running at http://localhost:${PORT}`);
+import dotenv from "dotenv";
+import app from "./app.js";
+
+dotenv.config();
+
+const port = Number(process.env.PORT) || 5000;
+
+app.listen(port, () => {
+  console.log(`Backend running at http://localhost:${port}`);
 });

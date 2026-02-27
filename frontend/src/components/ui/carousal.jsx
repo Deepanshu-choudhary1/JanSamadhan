@@ -40,7 +40,6 @@ const Carousel = () => {
     <div className="flex items-center justify-center w-full">
       <div className="w-full max-w-xl h-[400px] flex items-center justify-center relative">
         {songs.map((song, index) => {
-          const isActive = index === current;
           const isLeft = index === (current + 1) % songs.length;
           const isRight = index === (current - 1 + songs.length) % songs.length;
 
