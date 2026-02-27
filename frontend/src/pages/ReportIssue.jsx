@@ -1,3 +1,15 @@
+import { useEffect, useState } from "react";
+import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import { reportIssue } from "../services/api";
+
+const RecenterMap = ({ center }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (center?.length === 2) map.setView(center, 15);
+  }, [center, map]);
+  return null;
+};
 import { useState } from "react";
 import { MapContainer, Marker, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -44,6 +56,11 @@ const ReportIssue = () => {
           <label className="block font-semibold mb-2">Location</label>
           <button type="button" onClick={handleLocation} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Use My Location</button>
           <div className="h-64 mt-4 rounded-lg overflow-hidden shadow">
+            <MapContainer center={position} zoom={15} style={{ height: "100%", width: "100%" }}>
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <RecenterMap center={position} />
+              <Marker position={position} />
+            </MapContainer>
             <MapContainer center={position} zoom={15} style={{ height: "100%", width: "100%" }}><TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" /><Marker position={position} /></MapContainer>
           </div>
         </div>

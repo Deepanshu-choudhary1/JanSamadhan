@@ -7,6 +7,15 @@ const IssueDetails = () => {
   const [issue, setIssue] = useState(null);
   const [newComment, setNewComment] = useState("");
 
+  const loadIssue = async () => {
+    const data = await fetchIssueDetails(id);
+    setIssue(data);
+  };
+
+  useEffect(() => {
+    loadIssue();
+  }, [id]);
+
   const loadIssue = useCallback(async () => {
     const data = await fetchIssueDetails(id);
     setIssue(data);

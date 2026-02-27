@@ -12,9 +12,23 @@ const getMarkerIcon = (status) => {
   });
 };
 
+const userIcon = L.divIcon({
+  className: "custom-user-icon",
+  html: '<div style="background:#2563eb;width:18px;height:18px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px #2563eb"></div>',
+});
+
+const RecenterMap = ({ center }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (center?.length === 2) map.setView(center, 13);
+  }, [center, map]);
+  return null;
+};
+
 const IssuesPage = () => {
   const [issues, setIssues] = useState([]);
   const [filters, setFilters] = useState({ status: "All", category: "All" });
+  const [userLocation, setUserLocation] = useState([20.5937, 78.9629]);
 
   useEffect(() => {
     const load = async () => {
