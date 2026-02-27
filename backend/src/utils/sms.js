@@ -1,19 +1,30 @@
-import twilio from "twilio";
-import dotenv from "dotenv";
+const hasSmsGateway = () =>
+  Boolean(process.env.SMS_WEBHOOK_URL && process.env.SMS_FROM);
 
-dotenv.config();
+export const sendSMS = async ({ to, message }) => {
+  if (!to) return { skipped: true, reason: "missing-recipient" };
 
-const client = twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH);
-
-export const sendSMS = async (to, message) => {
-  try {
-    await client.messages.create({
-      body: message,
-      from: process.env.TWILIO_PHONE,
-      to,
-    });
-    console.log(`📱 SMS sent to ${to}`);
-  } catch (err) {
-    console.error("❌ SMS error:", err);
+  if (!hasSmsGateway()) {
+    console.log(`[sms:mock] to=${to} message=${message}`);
+    return { skipped: true, reason: "sms-gateway-not-configured" };
   }
+
+  const payload = {
+    from: process.env.SMS_FROM,
+    to,
+    message,
+  };
+
+  const response = await fetch(process.env.SMS_WEBHOOK_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`SMS delivery failed: ${response.status} ${body}`);
+  }
+
+  return { sent: true };
 };

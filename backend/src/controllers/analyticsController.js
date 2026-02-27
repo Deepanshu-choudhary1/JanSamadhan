@@ -1,76 +1,55 @@
-import { Issue } from "../models/Issue.js";
-import { Sequelize } from "sequelize";
+import { readStore } from "../lib/store.js";
 
-// Summary stats
-export const getSummary = async (req, res) => {
-  try {
-    const total = await Issue.count();
-    const resolved = await Issue.count({ where: { status: "Resolved" } });
-    const inProgress = await Issue.count({ where: { status: "In Progress" } });
-    const reported = await Issue.count({ where: { status: "Reported" } });
+const day = (date) => new Date(date).toISOString().slice(0, 10);
 
-    res.json({ total, resolved, inProgress, reported });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+export const getSummary = async (_req, res) => {
+  const { issues } = await readStore();
+  const summary = {
+    total: issues.length,
+    reported: issues.filter((i) => i.status === "Reported").length,
+    inProgress: issues.filter((i) => i.status === "In Progress").length,
+    resolved: issues.filter((i) => i.status === "Resolved").length,
+  };
+  return res.json(summary);
 };
 
-// Issues by category (Pie chart data)
-export const getIssuesByCategory = async (req, res) => {
-  try {
-    const results = await Issue.findAll({
-      attributes: [
-        "category",
-        [Sequelize.fn("COUNT", Sequelize.col("category")), "count"],
-      ],
-      group: ["category"],
-    });
+export const getIssuesByCategory = async (_req, res) => {
+  const { issues } = await readStore();
+  const grouped = Object.entries(
+    issues.reduce((acc, issue) => {
+      acc[issue.category] = (acc[issue.category] || 0) + 1;
+      return acc;
+    }, {})
+  ).map(([category, count]) => ({ category, count }));
 
-    res.json(results);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  return res.json(grouped);
 };
 
-// Avg resolution time (Line chart data)
-export const getResolutionTimes = async (req, res) => {
-  try {
-    const results = await Issue.findAll({
-      attributes: [
-        [Sequelize.fn("DATE", Sequelize.col("createdAt")), "date"],
-        [
-          Sequelize.fn(
-            "AVG",
-            Sequelize.literal("julianday(updatedAt) - julianday(createdAt)")
-          ),
-          "avgResolutionDays",
-        ],
-      ],
-      where: { status: "Resolved" },
-      group: [Sequelize.fn("DATE", Sequelize.col("createdAt"))],
-      order: [[Sequelize.fn("DATE", Sequelize.col("createdAt")), "ASC"]],
-    });
+export const getResolutionTimes = async (_req, res) => {
+  const { issues } = await readStore();
+  const rows = issues
+    .filter((i) => i.status === "Resolved")
+    .map((issue) => ({
+      date: day(issue.updatedAt),
+      avgResolutionDays:
+        (new Date(issue.updatedAt).getTime() - new Date(issue.createdAt).getTime()) /
+        (1000 * 60 * 60 * 24),
+    }));
 
-    res.json(results);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  return res.json(rows);
 };
 
-// Issues trend (Bar chart data)
-export const getIssuesTrend = async (req, res) => {
-  try {
-    const results = await Issue.findAll({
-      attributes: [
-        [Sequelize.fn("DATE", Sequelize.col("createdAt")), "date"],
-        [Sequelize.fn("COUNT", Sequelize.col("id")), "count"],
-      ],
-      group: [Sequelize.fn("DATE", Sequelize.col("createdAt"))],
-      order: [[Sequelize.fn("DATE", Sequelize.col("createdAt")), "ASC"]],
-    });
+export const getIssuesTrend = async (_req, res) => {
+  const { issues } = await readStore();
+  const grouped = Object.entries(
+    issues.reduce((acc, issue) => {
+      const created = day(issue.createdAt);
+      acc[created] = (acc[created] || 0) + 1;
+      return acc;
+    }, {})
+  )
+    .map(([date, count]) => ({ date, count }))
+    .sort((a, b) => a.date.localeCompare(b.date));
 
-    res.json(results);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  return res.json(grouped);
 };
