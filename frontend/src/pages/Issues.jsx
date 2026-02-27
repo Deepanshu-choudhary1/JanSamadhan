@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
+import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { fetchIssues } from "../services/api";
@@ -38,14 +38,6 @@ const IssuesPage = () => {
     load();
   }, [filters]);
 
-  useEffect(() => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => setUserLocation([pos.coords.latitude, pos.coords.longitude]),
-      () => {}
-    );
-  }, []);
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 p-6">
       <div className="lg:col-span-1 space-y-6">
@@ -65,12 +57,8 @@ const IssuesPage = () => {
 
       <div className="lg:col-span-3 space-y-6">
         <div className="h-96 rounded-lg overflow-hidden border">
-          <MapContainer center={userLocation} zoom={5} style={{ height: "100%", width: "100%" }}>
+          <MapContainer center={[20.5937, 78.9629]} zoom={5} style={{ height: "100%", width: "100%" }}>
             <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            <RecenterMap center={userLocation} />
-            <Marker position={userLocation} icon={userIcon}>
-              <Popup>Your current location</Popup>
-            </Marker>
             {issues.filter((i) => i.location?.lat && i.location?.lng).map((issue) => (
               <Marker key={issue.id} position={[issue.location.lat, issue.location.lng]} icon={getMarkerIcon(issue.status)}>
                 <Popup><h4 className="font-bold">{issue.title}</h4><p>{issue.category}</p><p>{issue.status}</p></Popup>
