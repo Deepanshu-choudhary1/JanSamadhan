@@ -6,7 +6,7 @@ const publicUser = ({ passwordHash, ...user }) => user;
 
 export const signup = async (req, res) => {
   try {
-    const { name, email, password, role, adminSignupKey } = req.body;
+    const { name, email, password, role, adminSignupKey, phone, pushToken } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ error: "name, email and password are required" });
@@ -35,6 +35,8 @@ export const signup = async (req, res) => {
       email: normalizedEmail,
       passwordHash: await bcrypt.hash(password, 10),
       role: resolvedRole,
+      phone: phone || null,
+      pushToken: pushToken || null,
       createdAt: new Date().toISOString(),
     };
 

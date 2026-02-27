@@ -13,6 +13,8 @@ const Signup = () => {
     password: "",
     role: "Citizen",
     adminSignupKey: "",
+    phone: "",
+    pushToken: "",
   });
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
@@ -27,6 +29,8 @@ const Signup = () => {
         email: form.email,
         password: form.password,
         role: form.role,
+        phone: form.phone || undefined,
+        pushToken: form.pushToken || undefined,
       };
 
       if (form.role === "Admin") {
@@ -48,6 +52,8 @@ const Signup = () => {
         <input type="text" name="name" placeholder="Full Name" value={form.name} onChange={handleChange} required className="w-full px-4 py-2 border rounded-lg" />
         <input type="email" name="email" placeholder="Email" value={form.email} onChange={handleChange} required className="w-full px-4 py-2 border rounded-lg" />
         <input type="password" name="password" placeholder="Password" value={form.password} onChange={handleChange} required className="w-full px-4 py-2 border rounded-lg" />
+        <input type="tel" name="phone" placeholder="Phone (optional for SMS alerts)" value={form.phone} onChange={handleChange} className="w-full px-4 py-2 border rounded-lg" />
+        <input type="text" name="pushToken" placeholder="Push token (optional)" value={form.pushToken} onChange={handleChange} className="w-full px-4 py-2 border rounded-lg" />
         <select name="role" value={form.role} onChange={handleChange} className="w-full px-4 py-2 border rounded-lg">
           <option value="Citizen">Citizen</option>
           <option value="Admin">Admin</option>

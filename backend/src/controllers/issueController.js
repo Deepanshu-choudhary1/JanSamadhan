@@ -1,4 +1,5 @@
 import { nextId, readStore, writeStore } from "../lib/store.js";
+import { notifyUser } from "../services/notifications.js";
 
 const issueView = (issue, users) => ({
   ...issue,
@@ -62,6 +63,16 @@ export const reportIssue = async (req, res) => {
 
     store.issues.push(issue);
     await writeStore(store);
+
+    const user = store.users.find((u) => u.id === issue.userId);
+    await notifyUser(user, {
+      emailSubject: `Issue reported: ${issue.title}`,
+      emailText: `Your issue #${issue.id} has been reported successfully and is now in Reported status.`,
+      emailHtml: `<p>Your issue <b>${issue.title}</b> has been reported successfully with ID <b>#${issue.id}</b>.</p>`,
+      smsText: `Issue #${issue.id} reported successfully. Status: Reported.`,
+      pushTitle: "Issue reported",
+      pushBody: `${issue.title} has been reported successfully.`,
+    });
 
     return res.status(201).json(issueView(issue, store.users));
   } catch (error) {
