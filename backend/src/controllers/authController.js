@@ -1,42 +1,50 @@
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import { User } from "../models/User.js";
+import bcrypt from "bcryptjs";
+import { nextId, readStore, writeStore } from "../lib/store.js";
+import { signToken } from "../middleware/auth.js";
 
-const generateTokens = (user) => {
-  const accessToken = jwt.sign(
-    { id: user.id, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: "15m" }
-  );
-  const refreshToken = jwt.sign(
-    { id: user.id },
-    process.env.JWT_REFRESH_SECRET,
-    { expiresIn: "7d" }
-  );
-  return { accessToken, refreshToken };
-};
+const publicUser = ({ passwordHash, ...user }) => user;
 
 export const signup = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, adminSignupKey } = req.body;
 
-    const existing = await User.findOne({ where: { email } });
-    if (existing) return res.status(400).json({ error: "User already exists" });
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: "name, email and password are required" });
+    }
 
-    const salt = await bcrypt.genSalt(10);
-    const hash = await bcrypt.hash(password, salt);
+    const store = await readStore();
+    const normalizedEmail = email.toLowerCase().trim();
 
-    const user = await User.create({
-      name,
-      email,
-      passwordHash: hash,
-      role: role || "Citizen",
-    });
+    const exists = store.users.find((u) => u.email === normalizedEmail);
+    if (exists) {
+      return res.status(409).json({ error: "User already exists" });
+    }
 
-    const tokens = generateTokens(user);
-    res.status(201).json({ user, ...tokens });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    let resolvedRole = "Citizen";
+    if (role === "Admin") {
+      const expectedKey = process.env.ADMIN_SIGNUP_KEY;
+      if (!expectedKey || adminSignupKey !== expectedKey) {
+        return res.status(403).json({ error: "Admin signup is restricted" });
+      }
+      resolvedRole = "Admin";
+    }
+
+    const newUser = {
+      id: nextId(store.users),
+      name: name.trim(),
+      email: normalizedEmail,
+      passwordHash: await bcrypt.hash(password, 10),
+      role: resolvedRole,
+      createdAt: new Date().toISOString(),
+    };
+
+    store.users.push(newUser);
+    await writeStore(store);
+
+    const user = publicUser(newUser);
+    return res.status(201).json({ user, token: signToken(user) });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
   }
 };
 
@@ -44,38 +52,23 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ where: { email } });
-    if (!user) return res.status(400).json({ error: "Invalid credentials" });
+    if (!email || !password) {
+      return res.status(400).json({ error: "email and password are required" });
+    }
 
-    const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) return res.status(400).json({ error: "Invalid credentials" });
+    const store = await readStore();
+    const user = store.users.find((u) => u.email === email.toLowerCase().trim());
 
-    const tokens = generateTokens(user);
-    res.json({ user, ...tokens });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    if (!user) return res.status(401).json({ error: "Invalid credentials" });
+
+    const match = await bcrypt.compare(password, user.passwordHash);
+    if (!match) return res.status(401).json({ error: "Invalid credentials" });
+
+    const safeUser = publicUser(user);
+    return res.json({ user: safeUser, token: signToken(safeUser) });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
   }
 };
 
-export const refresh = (req, res) => {
-  try {
-    const { refreshToken } = req.body;
-    if (!refreshToken) return res.status(401).json({ error: "No refresh token" });
-
-    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-    const accessToken = jwt.sign(
-      { id: decoded.id, role: decoded.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "15m" }
-    );
-
-    res.json({ accessToken });
-  } catch (err) {
-    res.status(403).json({ error: "Invalid refresh token" });
-  }
-};
-
-export const logout = (req, res) => {
-  // With stateless JWT, logout = handled client-side (delete token)
-  res.json({ message: "Logged out successfully" });
-};
+export const logout = async (_req, res) => res.json({ message: "Logged out" });

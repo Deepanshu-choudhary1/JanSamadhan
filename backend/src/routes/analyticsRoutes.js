@@ -1,11 +1,11 @@
 import express from "express";
-import { authenticate, authorize } from "../middleware/auth.js";
 import {
-  getSummary,
   getIssuesByCategory,
-  getResolutionTimes,
   getIssuesTrend,
+  getResolutionTimes,
+  getSummary,
 } from "../controllers/analyticsController.js";
+import { authenticate, authorize } from "../middleware/auth.js";
 
 const router = express.Router();
 
